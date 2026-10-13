@@ -47,8 +47,26 @@ function Invoke-OpenSslHash {
         $process.StartInfo.RedirectStandardInput = $true
         $process.StartInfo.RedirectStandardOutput = $true
         $process.StartInfo.RedirectStandardError = $true
-        if (-not $process.Start()) { throw "OpenSSL failed to start: $Id" }
-        $inputBytes = [System.Text.Encoding]::UTF8.GetBytes($Password + "`n")
+        $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+        $savedInputEncoding = $null
+        try {
+            # Process creates an AutoFlush StreamWriter during Start(), which can
+            # emit a BOM before we ever write BaseStream. Configure it first.
+            if ($null -ne $process.StartInfo.PSObject.Properties['StandardInputEncoding']) {
+                $process.StartInfo.StandardInputEncoding = $utf8NoBom
+            }
+            else {
+                # .NET Framework has no StandardInputEncoding property and uses
+                # Console.InputEncoding instead. Restore this process-wide setting.
+                $savedInputEncoding = [Console]::InputEncoding
+                [Console]::InputEncoding = $utf8NoBom
+            }
+            if (-not $process.Start()) { throw "OpenSSL failed to start: $Id" }
+        }
+        finally {
+            if ($null -ne $savedInputEncoding) { [Console]::InputEncoding = $savedInputEncoding }
+        }
+        $inputBytes = $utf8NoBom.GetBytes($Password + "`n")
         $inputStream = $process.StandardInput.BaseStream
         $inputStream.Write($inputBytes, 0, $inputBytes.Length)
         $inputStream.Flush()
