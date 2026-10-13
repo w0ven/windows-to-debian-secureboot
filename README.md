@@ -1,16 +1,36 @@
 # Windows → Debian 13（UEFI Secure Boot VPS）
 
-面向**兼容的 Hyper-V 二代 x86-64 VPS**，从 Windows 启动官方 Debian 13 安装器。必要时追加微软官方签名的 **Microsoft UEFI CA 2023** 更新，保留 Secure Boot 开启。
+用于这次已成功重装的同类 **Hyper-V 二代 x86-64 Windows VPS**，默认快捷入口直接自动安装 Debian 13，不用手工填写 IP、不用先连测试 SSH。必要时追加微软官方签名的 **Microsoft UEFI CA 2023** 更新，保留 Secure Boot 开启。
 
 **不是万能“解锁脚本”，也不是给磁盘直接写一个 DD 镜像。** 实际走的是微软签名 shim → Debian 签名 GRUB → Debian 签名内核 → Debian 官方安装器。
 
 > **风险：安装会删除 Windows 系统所在整块磁盘的全部分区和数据。没有商家控制台、强制重启或重装入口时，失败可能无法自行恢复。请先把重要数据备份到另一台机器。**
 >
-> **验证范围：** 本项目依据一次成功的 Windows Server 2022 / Hyper-V UEFI → Debian 13.7 实机安装整理。那次安装保持 Secure Boot 开启，重启和 root SSH 登录通过。**仓库通用版与自动模式尚未在新的、可丢弃的 Windows VPS 上完整清盘重装验收**；本仓库提供本地单元/格式/门控测试，不能把这些测试当作所有商家适用的证明。优先使用 Test 模式。
+> **验证范围：** 本项目依据一次成功的 Windows Server 2022 / Hyper-V UEFI → Debian 13.7 实机安装整理。那次安装保持 Secure Boot 开启，重启和 root SSH 登录通过。**仓库通用版与自动模式尚未在新的、可丢弃的 Windows VPS 上完整清盘重装验收**；本仓库提供本地单元/格式/门控测试，不能把这些测试当作新的整机安装成功证明。快捷模式不等于保证不失联；换了商家或配置不同时，可用下方 Test 流程先验证。
 
-## 是不是所有“禁 Linux”的商家都能用？
+## 同一家机器：粘贴一次，再回车确认
 
-**不是。** 适合的情况是：Windows-only Secure Boot 信任库缺少第三方 UEFI CA，但固件接受微软签名的追加更新。
+在**要被重装的 Windows VPS 里**，右键以管理员身份打开 **64 位 Windows PowerShell**（Windows 自带 5.1 即可），粘贴这一整行并回车：
+
+```powershell
+[Net.ServicePointManager]::SecurityProtocol=[Net.SecurityProtocolType]::Tls12; irm https://raw.githubusercontent.com/w0ven/windows-to-debian-secureboot/main/quick.ps1 | iex
+```
+
+脚本会显示识别到的系统盘、网络、SSH 登录命令和 **NEW ROOT PASSWORD（自动生成的 24 位随机密码）**。
+
+**先把密码保存到自己电脑，再按一次回车。** 这次回车就是明确同意清空显示的系统盘、接受失败失联风险并开始安装；输入任意其他文字回车会取消。不要向脚本管道传入回车，不要盲目连按。
+
+接下来自动下载并校验材料、准备启动、重启、安装 Debian 13、再重启。**无需另跑 Check、输入确认长句、重复输入密码，或登录 installer 再授权。** 等待安装完成后，用屏幕显示的 `ssh -p 22 root@你的IP` 和新密码登录；密码不是原 Windows 密码。重装后主机密钥会变化，核对目标后再更新自己客户端的旧记录。
+
+- **会清空 Windows 系统所在整块磁盘。重要数据须提前备份到机器外；商家安全组须允许 TCP 22。** 没有恢复入口时，失败可能无法自行恢复。
+- 密码仅在当前窗口显示，不写明文密码文件；不要分享截图或控制台记录。固件/安装阶段使用密码散列。
+- 网络参数和目标盘仍自动检测；有歧义、已有安装残留、下载校验失败或不支持的配置仍停止，不靠忽略错误继续。
+- 一行入口会在线执行**本仓库**的 `quick.ps1`，下载完整源码到独立临时目录并运行 `Install-Debian.ps1 -Quick`。仅对当前 PowerShell 进程设置执行策略。想先检查源码，按下方步骤下载后手动运行 `./Install-Debian.ps1 -Quick`。
+- 报错后不要重复安装或随意重启，保留输出并查看[恢复说明](docs/recovery.md)。
+
+## 适用边界（不是所有“禁 Linux”的商家）
+
+适合的情况是：Windows-only Secure Boot 信任库缺少第三方 UEFI CA，但固件接受微软签名的追加更新。
 
 不能保证解决以下情况：
 
@@ -22,16 +42,17 @@
 
 脚本不会关闭 Secure Boot，不会替换 PK/KEK，不会清空 db/dbx，也不会尝试绕过商家控制面权限。
 
-## 两种安装方式
+## 其他用法（按需，不是快捷安装的必做步骤）
 
 | 方式 | 行为 | 推荐对象 |
 | --- | --- | --- |
-| `Test` | 一次性启动 Debian；SSH 接管后再次明确确认才清盘 | **首次使用、每个新商家/新配置** |
+| `-Quick` | 自动生成密码，按一次回车确认后直接自动安装 | 这家已知适用的同类机器，愿意直接重装 |
+| `Test` | 一次性启动 Debian；SSH 接管后再次明确确认才清盘 | 新商家/新配置，或想先验证引导与 SSH |
 | `AutoInstall` | Windows 中明确确认后；Linux 自检通过即清盘安装 | 已确认适用、已有恢复入口的可丢弃机器 |
 
 自动模式的联网检查**不能证明外部 SSH 入站可达**。如果有商家安全组，请先允许你设置的 SSH 端口。Windows 原 RDP 端口不会自动成为 Debian SSH 端口。
 
-## 快速开始（推荐 Test）
+## 可选：先测试再安装（详细步骤）
 
 在**要被重装的 Windows VPS 里面**，以管理员身份打开 **64 位 Windows PowerShell 5.1**。不是在你的日常办公电脑上运行。
 
@@ -47,7 +68,7 @@ Set-Location "$env:USERPROFILE\w2d-source\windows-to-debian-secureboot-main"
 Set-ExecutionPolicy -Scope Process Bypass -Force
 ```
 
-这不是 `iex` 在线执行；先下载完整源码，阅读后运行。`ExecutionPolicy` 只在当前 PowerShell 进程内调整。下载目录如果已经存在，请先确认是不是上一次操作，不要直接用覆盖参数盲目覆盖。
+本节是先下载完整源码、阅读后运行的方式，与上方在线快捷入口不同。`ExecutionPolicy` 只在当前 PowerShell 进程内调整。下载目录如果已经存在，请先确认是不是上一次操作，不要直接用覆盖参数盲目覆盖。
 
 ### 2. 只检查，不改启动
 
@@ -122,7 +143,7 @@ ssh -p 22 root@192.0.2.100
 .\Install-Debian.ps1 -Mode AutoInstall -RecoveryAvailable
 ```
 
-仍会要求明确输入 `AUTO-WIPE DISK <编号>` 和新密码，不提供含糊的 `-Yes` 来跳过危险操作。确认后会自动启动、检查原 ESP 与磁盘大小、配置网络、安装 Debian 并重启，不需再手动连 `installer` 授权。
+此手动设密码的方式仍要求输入 `AUTO-WIPE DISK <编号>` 和两次新密码。想减少交互，改用 `./Install-Debian.ps1 -Quick`：自动生成密码，把清盘、保存密码和失联风险合并为一次明确提示后的回车确认。两者确认后都自动启动、检查原 ESP 与磁盘大小、配置网络、安装 Debian 并重启，不需再手动连 `installer` 授权。
 
 没有恢复入口但明确接受失联风险时，使用 `-AcceptNoRecovery` **替代** `-RecoveryAvailable`。此参数不会创造任何恢复能力，也不使自动模式变安全。
 
@@ -145,11 +166,12 @@ ssh -p 22 root@192.0.2.100
 - 单一可明确识别的 IPv4 默认路由，网关在同一子网；v1 不支持 `/31`、`/32`、额外 on-link 路由、IPv6-only；
 - 必须精确识别系统盘上的唯一 ESP，ESP 现有空间足够；不自动缩分区/扩容；
 - 不接管已加密的 BitLocker 系统盘，不覆盖已有 `EFI\w2d` 或 `debian-installer`；
-- EFI 原始网络启动文件、磁盘布局和固件策略仍可能在实际启动时不兼容，Test 不能省。
+- EFI 网络启动文件、磁盘布局和固件策略仍可能不兼容；快捷模式省略独立 Test 阶段，不代表消除了实际启动风险。
 
 | 参数 | 默认值 / 用途 |
 | --- | --- |
-| `-Mode` | `Check`、`Test`、`AutoInstall`，默认 `Check` |
+| `-Mode` | `Check`、`Test`、`AutoInstall`，不带 `-Quick` 时默认 `Check` |
+| `-Quick` | 自动安装、随机生成密码，显示目标与风险后回车确认；无需另传恢复声明，仍须接受可能失联的风险 |
 | `-InterfaceIndex` | 指定默认路由所在网卡；多网卡时必须明确 |
 | `-IPAddress` | 选择该网卡当前已有的 IPv4；不用于更改公网 IP |
 | `-PrefixLength`、`-Gateway` | 若指定，必须与当前工作连接相同 |

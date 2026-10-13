@@ -12,11 +12,16 @@ param(
     [ValidateRange(1,65535)][int]$SshPort=22,
     [switch]$RecoveryAvailable,
     [switch]$AcceptNoRecovery,
-    [switch]$NoReboot
+    [switch]$NoReboot,
+    [switch]$Quick
 )
 Set-StrictMode -Version 2
 $ErrorActionPreference='Stop'
 $ProgressPreference='SilentlyContinue'
+if ($Quick) {
+    if ($PSBoundParameters.ContainsKey('Mode') -and $Mode -ne 'AutoInstall') { throw '-Quick cannot be combined with Check or Test mode.' }
+    $Mode='AutoInstall'
+}
 Import-Module (Join-Path $PSScriptRoot 'lib/W2D.psm1') -Force
 if (!('W2D.Firmware' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'lib/Firmware.cs') }
 $lock=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'assets.lock.json') -Raw | ConvertFrom-Json
@@ -36,34 +41,43 @@ Write-Host "Microsoft UEFI CA 2023 already trusted: $hasCa"
 Write-Host 'Static preflight only: firmware acceptance and actual boot cannot be proven without a trial.'
 if ($Mode -eq 'Check') { Write-Host 'No files, firmware variables or boot settings changed.'; return }
 if ($RecoveryAvailable -and $AcceptNoRecovery) { throw 'Choose only one recovery declaration.' }
-if (!$RecoveryAvailable -and !$AcceptNoRecovery) { throw 'Confirm provider console/reset/reinstall access with -RecoveryAvailable, or explicitly accept possible permanent loss of access with -AcceptNoRecovery.' }
+if (!$Quick -and !$RecoveryAvailable -and !$AcceptNoRecovery) { throw 'Confirm provider console/reset/reinstall access with -RecoveryAvailable, or explicitly accept possible permanent loss of access with -AcceptNoRecovery.' }
 $work=Join-Path $env:ProgramData 'W2D'
 if (Test-Path -LiteralPath $work) { throw "Staging already exists at $work. Do not rerun blindly; see Restore-WindowsBoot.ps1 and the recovery guide." }
 if (!$PSCmdlet.ShouldProcess("Windows system disk $($plan.DiskNumber)","Stage $Mode, possibly append an authenticated trust update, and arm a one-time reboot")) { return }
-Write-Warning 'Back up all required data off this VPS first. Local boot backups are NOT a Windows/data restore image and are erased by installation.'
-if ($AcceptNoRecovery) { Write-Warning 'A boot or network failure may require the provider. The software watchdog cannot recover firmware/GRUB/kernel hangs.' }
-if ($Mode -eq 'AutoInstall') {
-    Write-Warning 'AUTO MODE ERASES THE ENTIRE SYSTEM DISK after local disk/network checks. Those checks do NOT prove inbound SSH reachability.'
-    $phrase="AUTO-WIPE DISK $($plan.DiskNumber)"
+if ($Quick) {
+    if (!('W2D.Sha512Crypt' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'lib/Sha512Crypt.cs') }
+    $generated=New-W2dRandomPassword
+    try {
+        Confirm-W2dQuickInstall -DiskNumber $plan.DiskNumber -DiskBytes $plan.DiskBytes -IPAddress $plan.IPAddress -SshPort $SshPort -Password $generated -NoReboot:$NoReboot
+        $passwordHash=[W2D.Sha512Crypt]::Hash($generated,[W2D.Sha512Crypt]::GenerateSalt())
+    } finally { $generated=$null }
 } else {
-    Write-Host 'TEST MODE keeps Windows until you SSH into the trial and explicitly run /w2d/install-debian.sh.'
-    $phrase="TEST-BOOT DISK $($plan.DiskNumber)"
-}
-Write-Host 'This will change the Secure Boot trust store if needed, and reboot unless -NoReboot was specified.'
-if ((Read-Host "Type exactly: $phrase") -cne $phrase) { throw 'Cancelled; nothing staged.' }
-if (!('W2D.Sha512Crypt' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'lib/Sha512Crypt.cs') }
-$first=Read-Host 'New Debian root password (16-256 characters; also used for the installer SSH account)' -AsSecureString
-$second=Read-Host 'Repeat password' -AsSecureString
-$a=[IntPtr]::Zero; $b=[IntPtr]::Zero
-try {
-    $a=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($first); $b=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($second)
-    $plain=[Runtime.InteropServices.Marshal]::PtrToStringBSTR($a); $again=[Runtime.InteropServices.Marshal]::PtrToStringBSTR($b)
-    if ($plain.Length -lt 16 -or $plain.Length -gt 256 -or $plain -cne $again -or $plain.Contains([char]0)) { throw 'Passwords must match and contain 16-256 characters without NUL.' }
-    $passwordHash=[W2D.Sha512Crypt]::Hash($plain,[W2D.Sha512Crypt]::GenerateSalt())
-} finally {
-    if ($a -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($a) }
-    if ($b -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($b) }
-    $plain=$null; $again=$null; $first.Dispose(); $second.Dispose()
+    Write-Warning 'Back up all required data off this VPS first. Local boot backups are NOT a Windows/data restore image and are erased by installation.'
+    if ($AcceptNoRecovery) { Write-Warning 'A boot or network failure may require the provider. The software watchdog cannot recover firmware/GRUB/kernel hangs.' }
+    if ($Mode -eq 'AutoInstall') {
+        Write-Warning 'AUTO MODE ERASES THE ENTIRE SYSTEM DISK after local disk/network checks. Those checks do NOT prove inbound SSH reachability.'
+        $phrase="AUTO-WIPE DISK $($plan.DiskNumber)"
+    } else {
+        Write-Host 'TEST MODE keeps Windows until you SSH into the trial and explicitly run /w2d/install-debian.sh.'
+        $phrase="TEST-BOOT DISK $($plan.DiskNumber)"
+    }
+    Write-Host 'This will change the Secure Boot trust store if needed, and reboot unless -NoReboot was specified.'
+    if ((Read-Host "Type exactly: $phrase") -cne $phrase) { throw 'Cancelled; nothing staged.' }
+    if (!('W2D.Sha512Crypt' -as [type])) { Add-Type -Path (Join-Path $PSScriptRoot 'lib/Sha512Crypt.cs') }
+    $first=Read-Host 'New Debian root password (16-256 characters; also used for the installer SSH account)' -AsSecureString
+    $second=Read-Host 'Repeat password' -AsSecureString
+    $a=[IntPtr]::Zero; $b=[IntPtr]::Zero
+    try {
+        $a=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($first); $b=[Runtime.InteropServices.Marshal]::SecureStringToBSTR($second)
+        $plain=[Runtime.InteropServices.Marshal]::PtrToStringBSTR($a); $again=[Runtime.InteropServices.Marshal]::PtrToStringBSTR($b)
+        if ($plain.Length -lt 16 -or $plain.Length -gt 256 -or $plain -cne $again -or $plain.Contains([char]0)) { throw 'Passwords must match and contain 16-256 characters without NUL.' }
+        $passwordHash=[W2D.Sha512Crypt]::Hash($plain,[W2D.Sha512Crypt]::GenerateSalt())
+    } finally {
+        if ($a -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($a) }
+        if ($b -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($b) }
+        $plain=$null; $again=$null; $first.Dispose(); $second.Dispose()
+    }
 }
 Protect-W2dDirectory $work
 $mounted=$false; $armed=$false; $state=$null; $letter=$null
@@ -173,8 +187,13 @@ d-i preseed/early_command string /w2d/boot-gate.sh
     if ([BitConverter]::ToUInt16([W2D.Firmware]::ReadGlobal('BootNext'),0) -ne $bootId) { throw 'BootNext readback mismatch.' }
     $state.Status='Armed'; $state | ConvertTo-Json -Depth 5 | Set-Content -LiteralPath $statePath -Encoding UTF8
     & mountvol.exe ($letter+':') /D; if ($LASTEXITCODE -ne 0) { throw 'ESP unmount failed.' }; $mounted=$false
-    Write-Host "Trial SSH: ssh -p $SshPort installer@$($plan.IPAddress) (password entered above)"
-    Write-Host "Installed SSH: ssh -p $SshPort root@$($plan.IPAddress) (same password)"
+    if ($Quick) {
+        Write-Host "Automatic installation is prepared. When complete: ssh -p $SshPort root@$($plan.IPAddress)"
+        Write-Host 'Use the new password you saved at confirmation. No installer SSH step is needed.'
+    } else {
+        Write-Host "Trial SSH: ssh -p $SshPort installer@$($plan.IPAddress) (password entered above)"
+        Write-Host "Installed SSH: ssh -p $SshPort root@$($plan.IPAddress) (same password)"
+    }
     Write-Host "Boot backup: $backup (copy off-machine before allowing disk erase)."
     if ($NoReboot) { Write-Warning 'BootNext IS ARMED. The next reboot enters the selected mode. Run Restore-WindowsBoot.ps1 to cancel it.'; return }
     & shutdown.exe /r /t 15 /d p:4:2 /c 'W2D controlled Debian 13 boot'

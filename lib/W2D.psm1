@@ -33,6 +33,32 @@ function ConvertTo-W2dShellValue {
     if ($Value.Contains("`r") -or $Value.Contains("`n") -or $Value.Contains([char]0) -or $Value.Contains("'")) { throw 'Unsafe shell configuration value.' }
     return "'$Value'"
 }
+function New-W2dRandomPassword {
+    $bytes=New-Object byte[] 18
+    $rng=[Security.Cryptography.RandomNumberGenerator]::Create()
+    try {
+        $rng.GetBytes($bytes)
+        return [Convert]::ToBase64String($bytes)
+    } finally {
+        $rng.Dispose()
+        [Array]::Clear($bytes,0,$bytes.Length)
+    }
+}
+function Confirm-W2dQuickInstall {
+    param([int]$DiskNumber,[uint64]$DiskBytes,[string]$IPAddress,[int]$SshPort,[string]$Password,[switch]$NoReboot)
+    if ([Console]::IsInputRedirected -or ![Environment]::UserInteractive) { throw 'Quick installation requires an interactive console. Do not pipe a confirmation into it.' }
+    Write-Host ''
+    Write-Warning "ERASE WINDOWS: ALL partitions and data on system disk $DiskNumber ($([math]::Round($DiskBytes/1GB,2)) GiB) will be deleted. Back up required data off this VPS first."
+    Write-Warning 'This may update Secure Boot trust. Boot/network failure can leave this VPS inaccessible; without provider recovery access you may be unable to recover it.'
+    Write-Warning 'Local network checks cannot prove inbound SSH access. Allow the SSH port in the provider firewall first.'
+    Write-Host "Debian 13 login: ssh -p $SshPort root@$IPAddress"
+    Write-Host "NEW ROOT PASSWORD: $Password" -ForegroundColor Yellow
+    Write-Host 'Save this password on YOUR computer now. It is shown only here, not saved as plaintext by this tool. Do not share this screen or a console transcript.'
+    if ($NoReboot) { Write-Warning 'NoReboot: the NEXT reboot will erase this disk and install Debian after checks pass.' }
+    else { Write-Host 'After preparation this VPS will reboot automatically, install Debian, then reboot again. No installer SSH step is needed.' }
+    $answer=Read-Host "Press ENTER to ERASE DISK $DiskNumber (password saved, data backed up, loss-of-access risk accepted); type anything else to cancel"
+    if ($null -eq $answer -or $answer -cne '') { throw 'Cancelled; nothing staged.' }
+}
 function Get-W2dPlan {
     param([int]$InterfaceIndex,[string]$IPAddress,[int]$PrefixLength,[string]$Gateway,[string[]]$DnsServers)
     if ($env:OS -ne 'Windows_NT' -or ![Environment]::Is64BitProcess) { throw 'Run 64-bit Windows PowerShell as Administrator on the Windows VPS.' }

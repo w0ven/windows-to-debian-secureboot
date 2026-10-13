@@ -13,6 +13,9 @@ jobs:
       - name: Windows PowerShell 5.1 pure-logic and format tests
         shell: powershell
         run: ./tests/test_windows.ps1
+      - name: Quick-entry confirmation and compatibility tests
+        shell: powershell
+        run: ./tests/test_quick.ps1
       - name: Password hash test vectors
         shell: powershell
         run: ./tests/test_crypto.ps1
@@ -26,6 +29,7 @@ jobs:
       - name: PowerShell cross-platform tests
         run: |
           pwsh -NoProfile -File tests/test_windows.ps1
+          pwsh -NoProfile -File tests/test_quick.ps1
           pwsh -NoProfile -File tests/test_crypto.ps1
           pwsh -NoProfile -File tests/test_boot_state.ps1
       - name: Linux safety tests (no real disks or servers)
