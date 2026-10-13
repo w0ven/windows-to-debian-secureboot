@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "architecture": "amd64",
+  "distribution": "trixie",
+  "debianVersion": "13.7",
+  "installerVersion": "20250803+deb13u7",
+  "kernelVersion": "6.12.107+deb13-amd64",
+  "verifiedOn": "2026-10-14",
+  "uefiCaSha256": "f6124e34125bee3fe6d79a574eaa7b91c0e7bd9d929c1a321178efd611dad901",
+  "assets": [
+    {
+      "name": "linux",
+      "role": "kernel",
+      "url": "https://deb.debian.org/debian/dists/trixie/main/installer-amd64/20250803+deb13u7/images/netboot/debian-installer/amd64/linux",
+      "sha256": "2b2358b37674d2505350528875bb17afae2a36522a9e8a9417eaca65a7da0e08",
+      "size": 12142528
+    },
+    {
+      "name": "initrd.gz",
+      "role": "initrd",
+      "url": "https://deb.debian.org/debian/dists/trixie/main/installer-amd64/20250803+deb13u7/images/netboot/debian-installer/amd64/initrd.gz",
+      "sha256": "57303d157cffce3fa402301667fbc9b2280aa7372082b081e777375ae49da5f2",
+      "size": 40723557
+    },
+    {
+      "name": "shimx64.efi",
+      "role": "shim",
+      "url": "https://deb.debian.org/debian/dists/trixie/main/installer-amd64/20250803+deb13u7/images/netboot/debian-installer/amd64/bootnetx64.efi",
+      "sha256": "e103c5d02657879f141b086ed703584d28bb9e2721b423333be085ee1b4d397b",
+      "size": 1036152
+    },
+    {
+      "name": "grubx64.efi",
+      "role": "grub",
+      "url": "https://deb.debian.org/debian/dists/trixie/main/installer-amd64/20250803+deb13u7/images/netboot/debian-installer/amd64/grubx64.efi",
+      "sha256": "df92cd09dae04600b3b87ebe5a9adf585257d9cfc4569a4b0ae97f323aa55885",
+      "size": 2344384
+    },
+    {
+      "name": "ata-modules-6.12.107+deb13-amd64-di_6.12.107-1_amd64.udeb",
+      "role": "udeb",
+      "url": "https://deb.debian.org/debian/pool/main/l/linux-signed-amd64/ata-modules-6.12.107+deb13-amd64-di_6.12.107-1_amd64.udeb",
+      "sha256": "94102da490211dc8fb439ba46a5ba6329c4293bb1a3981e9de69f4984a1ce7ca",
+      "size": 166848
+    },
+    {
+      "name": "cdrom-core-modules-6.12.107+deb13-amd64-di_6.12.107-1_amd64.udeb",
+      "role": "udeb",
+      "url": "https://deb.debian.org/debian/pool/main/l/linux-signed-amd64/cdrom-core-modules-6.12.107+deb13-amd64-di_6.12.107-1_amd64.udeb",
+      "sha256": "691755a90f2a2f33503f8d76e46b40109c928decfdecd58ed44204a12876b134",
+      "size": 47808
+    },
+    {
+      "name": "scsi-modules-6.12.107+deb13-amd64-di_6.12.107-1_amd64.udeb",
+      "role": "udeb",
+      "url": "https://deb.debian.org/debian/pool/main/l/linux-signed-amd64/scsi-modules-6.12.107+deb13-amd64-di_6.12.107-1_amd64.udeb",
+      "sha256": "b201c50ad94ea599509ebd41afff9ea8129bb34b8edc3b1e41230813bbb90515",
+      "size": 4769396
+    },
+    {
+      "name": "openssh-server-udeb_10.0p1-7+deb13u4_amd64.udeb",
+      "role": "udeb",
+      "url": "https://deb.debian.org/debian/pool/main/o/openssh/openssh-server-udeb_10.0p1-7+deb13u4_amd64.udeb",
+      "sha256": "46edeeee6167758a4b69d5e6990daee8cb8590698d55f0fa40b79ebb0b813aef",
+      "size": 508784
+    },
+    {
+      "name": "DBUpdate3P2023.bin",
+      "role": "dbupdate",
+      "url": "https://raw.githubusercontent.com/microsoft/secureboot_objects/92b433ecf7154c7bf1b8f45245233bdde6cd14e5/PostSignedObjects/Optional/DB/DBUpdate3P2023.bin",
+      "sha256": "7a8fdc1e88638f4299221ca559e4e11c9d960a5b3ae47c92ca4fb11df96fd3ae",
+      "size": 4829
+    }
+  ]
+}

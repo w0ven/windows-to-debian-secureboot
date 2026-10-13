@@ -1,0 +1,32 @@
+name: Safe local tests
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  windows-powershell:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Windows PowerShell 5.1 pure-logic and format tests
+        shell: powershell
+        run: ./tests/test_windows.ps1
+      - name: Password hash test vectors
+        shell: powershell
+        run: ./tests/test_crypto.ps1
+      - name: Boot state drift and cancellation regression tests
+        shell: powershell
+        run: ./tests/test_boot_state.ps1
+  linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: PowerShell cross-platform tests
+        run: |
+          pwsh -NoProfile -File tests/test_windows.ps1
+          pwsh -NoProfile -File tests/test_crypto.ps1
+          pwsh -NoProfile -File tests/test_boot_state.ps1
+      - name: Linux safety tests (no real disks or servers)
+        run: sudo env PATH="$PATH" python3 -I -m unittest discover -s tests -p 'test_*.py' -v

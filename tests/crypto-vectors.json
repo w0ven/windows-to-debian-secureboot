@@ -1,0 +1,161 @@
+{
+  "notice": "Public synthetic test passwords only. Never add real credentials. Expected hashes come from independent implementations, never Sha512Crypt.cs.",
+  "generator": "OpenSSL 3.0.20 7 Apr 2026 (Library: OpenSSL 3.0.20 7 Apr 2026)",
+  "command": "openssl passwd -6 -salt <salt> -stdin (password sent as UTF-8 bytes plus newline)",
+  "emptyPasswordNote": "This OpenSSL build returns <NULL> for empty input via stdin or an empty argument. Only those two vectors use system crypt(3); all other vectors were also cross-checked against crypt(3).",
+  "rounds": 5000,
+  "vectors": [
+    {
+      "id": "ascii-basic",
+      "password": "synthetic-test-only",
+      "passwordUtf8Bytes": 19,
+      "salt": "Salt0123",
+      "expected": "$6$Salt0123$4fOt/hb7zTVA7Ngz3DLtBJEfcna2vLx5UKcilf758D6DVEKARhNA2jyNkXIOasHbNa1qIvtkHn02ySSWpzNKP0",
+      "reference": "openssl"
+    },
+    {
+      "id": "ascii-min-salt",
+      "password": "synthetic-test-only",
+      "passwordUtf8Bytes": 19,
+      "salt": ".",
+      "expected": "$6$.$99QwYMX2f1zYUiRg1t8qsgXk8NxaFbmm.Z/PJOYNjsUBG3yIgWFqoRkd0xQ7aB5wnWbzB1.vZgcoNHn5hBOmx0",
+      "reference": "openssl"
+    },
+    {
+      "id": "ascii-slash-salt",
+      "password": "synthetic-test-only",
+      "passwordUtf8Bytes": 19,
+      "salt": "/",
+      "expected": "$6$/$7XDbnBLMyCjA1w8j1RsgIcxLuSrsK1huHuuLoO/oDaSaKHxROrFfTpCf8AenhUqekmyq8RlJ2MU65waS8bmnI/",
+      "reference": "openssl"
+    },
+    {
+      "id": "ascii-max-salt",
+      "password": "synthetic-test-only",
+      "passwordUtf8Bytes": 19,
+      "salt": "./0123456789ABaz",
+      "expected": "$6$./0123456789ABaz$Jo9iTFb2wP800MyVlA.FJSBCT.z.gWyamilLwkXBwqhfYskt26MptGVjW3Iux7W8r7ttnJYzgY7LkdYdlg1tX1",
+      "reference": "openssl"
+    },
+    {
+      "id": "ascii-punctuation",
+      "password": "TEST ONLY: spaces! $quotes'\"\\end",
+      "passwordUtf8Bytes": 32,
+      "salt": "aZ09./",
+      "expected": "$6$aZ09./$VebrpQUT/buyXD0NxER25iXoW50Po9cDHDa6qfEHo2Kz9sMlVXnxnAGbHLsYUZWOTc4L069uGow49FG6vF2lr0",
+      "reference": "openssl"
+    },
+    {
+      "id": "unicode-mixed",
+      "password": "\u5408\u6210\u6d4b\u8bd5-P\u00e4ssw\u00f6rd-\ud83d\udd10",
+      "passwordUtf8Bytes": 28,
+      "salt": "Unicode9",
+      "expected": "$6$Unicode9$9jWsqTiGfp4QufuBQggIQ2kJEHhmkQCHnkozDVRILnZ11mmhplVgApYnse1k85KpyGumm8rEOchZL5oJRWsIV1",
+      "reference": "openssl"
+    },
+    {
+      "id": "unicode-composed",
+      "password": "synth-caf\u00e9",
+      "passwordUtf8Bytes": 11,
+      "salt": "SameSalt",
+      "expected": "$6$SameSalt$s40QOSYsMLFAQvwND4JFEiwKEgIAHgWpQ2cPHewVnbT6hTDnnosYEuQHDRBXBmq7O49w8q7qO3joioPG6ol2D.",
+      "reference": "openssl"
+    },
+    {
+      "id": "unicode-decomposed",
+      "password": "synth-cafe\u0301",
+      "passwordUtf8Bytes": 12,
+      "salt": "SameSalt",
+      "expected": "$6$SameSalt$mMe2fGu/c9GnyYcxqZBubJGURWlsTeucnUgiciy8MlbZOUtRMrhXwXHYAmb7F21kFjV70t1IAwshpROV/2Bs90",
+      "reference": "openssl"
+    },
+    {
+      "id": "empty-min-salt",
+      "password": "",
+      "passwordUtf8Bytes": 0,
+      "salt": "0",
+      "expected": "$6$0$Yrvab62Y1RO3TCUuPkmXh0N9OZqj6y1sdPiRJD0zEjUstb2kzMCOIGBxZ7790sM3ef78LB06g2JBpumq3owUq1",
+      "reference": "system crypt(3) via Python crypt; OpenSSL 3.0.20 returned <NULL> for empty input"
+    },
+    {
+      "id": "empty-max-salt",
+      "password": "",
+      "passwordUtf8Bytes": 0,
+      "salt": "abcdefghijklmnop",
+      "expected": "$6$abcdefghijklmnop$6.vC8ffobuN7AxcHvesxeeksF2DXFfpYyFt3PFU8pYpEQPhWFSN7hwaUQRfHg/LkfB3jIPEitUcU7ZTqjaQUp1",
+      "reference": "system crypt(3) via Python crypt; OpenSSL 3.0.20 returned <NULL> for empty input"
+    },
+    {
+      "id": "ascii-63-bytes",
+      "password": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "passwordUtf8Bytes": 63,
+      "salt": "Boundary63",
+      "expected": "$6$Boundary63$eVe.eBVrlqLuGTgv.qRYF1bvElw6hL9MHeuL72UvQxTID0KDMaxwVaKwBkZEmMsDJQNFzkhvr.6QURgi6RuF90",
+      "reference": "openssl"
+    },
+    {
+      "id": "ascii-64-bytes",
+      "password": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "passwordUtf8Bytes": 64,
+      "salt": "Boundary64",
+      "expected": "$6$Boundary64$EcN6r0WTJl3z86vK19ci3CTM/wGh/p4JIcKoRIIEGDWwEnU4kBbsDAx9XSqYxDlGcp9/z9nddpYYykoYiQoRn/",
+      "reference": "openssl"
+    },
+    {
+      "id": "ascii-65-bytes",
+      "password": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "passwordUtf8Bytes": 65,
+      "salt": "Boundary65",
+      "expected": "$6$Boundary65$kGDNy6dvxfci3rOdef/0LdA0sgoTV4wASub2qvp/htUqelFfSeesZWg6XE8a1BDaUfD8exKDeM61H/yzUkLjg.",
+      "reference": "openssl"
+    },
+    {
+      "id": "ascii-127-bytes",
+      "password": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "passwordUtf8Bytes": 127,
+      "salt": "Boundary127",
+      "expected": "$6$Boundary127$54NKdx1E7nLa.14ea9FkMMJfa3jM1dbrKKg9e5HmgzK/9lH7K7RPyQCnwp4BfRTw8aHnUG4RK7IhtW.IlfMBx.",
+      "reference": "openssl"
+    },
+    {
+      "id": "ascii-128-bytes",
+      "password": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "passwordUtf8Bytes": 128,
+      "salt": "Boundary128",
+      "expected": "$6$Boundary128$sJYH63DoLcfMxZC1cf3QorQ0hpjE0.jm633.oq9q49eznP5Mqp0CI7FHMQz/TXph5exD4EXeE8.d7qt0kzTVF.",
+      "reference": "openssl"
+    },
+    {
+      "id": "ascii-129-bytes",
+      "password": "yyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyyy",
+      "passwordUtf8Bytes": 129,
+      "salt": "Boundary129",
+      "expected": "$6$Boundary129$U/sODMo.CkZscq6PJkiqfie2QvtLIL1ff/kFso.xbpTxznKEm.JP4AqH/O0cweYCgpsxSVqutmyzd9KDLNMAZ/",
+      "reference": "openssl"
+    },
+    {
+      "id": "ascii-256-bytes",
+      "password": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
+      "passwordUtf8Bytes": 256,
+      "salt": "LongPassword",
+      "expected": "$6$LongPassword$yQWW9Ibcqc3RkKhy9qtjnXLIsIsjkA1PmSxJRLQQOla2ULQeGP6StuUWKnT7kVwGxmRpNxrIwHsfZoZHzMT89/",
+      "reference": "openssl"
+    },
+    {
+      "id": "unicode-64-bytes",
+      "password": "\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9\u00e9",
+      "passwordUtf8Bytes": 64,
+      "salt": "Utf8Bytes",
+      "expected": "$6$Utf8Bytes$yvy9zj8kUbaOBJycwMoLMZskMOgdu.3TmCmXdqY.sK8QR4wHpZ/i4YvqhH6.xfDqHwUCq5JWiAwDVqI9WFJ9F1",
+      "reference": "openssl"
+    },
+    {
+      "id": "unicode-long",
+      "password": "\u5408\u6210\ud83d\udd10\u5408\u6210\ud83d\udd10\u5408\u6210\ud83d\udd10\u5408\u6210\ud83d\udd10\u5408\u6210\ud83d\udd10\u5408\u6210\ud83d\udd10\u5408\u6210\ud83d\udd10\u5408\u6210\ud83d\udd10\u5408\u6210\ud83d\udd10\u5408\u6210\ud83d\udd10\u5408\u6210\ud83d\udd10\u5408\u6210\ud83d\udd10\u5408\u6210\ud83d\udd10\u5408\u6210\ud83d\udd10\u5408\u6210\ud83d\udd10\u5408\u6210\ud83d\udd10\u5408\u6210\ud83d\udd10\u5408\u6210\ud83d\udd10\u5408\u6210\ud83d\udd10\u5408\u6210\ud83d\udd10",
+      "passwordUtf8Bytes": 200,
+      "salt": "Utf8Long",
+      "expected": "$6$Utf8Long$JhmugKrx8S50tWagInYUZmbNIe9Zsht.1Ll17F2UKnRcFVmH/W3Voa0TXwm2Hk21CnVgjkmqcoSZj77B7IJop/",
+      "reference": "openssl"
+    }
+  ]
+}
