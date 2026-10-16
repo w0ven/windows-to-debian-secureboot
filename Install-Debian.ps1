@@ -127,12 +127,12 @@ d-i preseed/early_command string /w2d/boot-gate.sh
     & mountvol.exe ($letter+':') /S
     if ($LASTEXITCODE -ne 0) { throw 'Failed to mount the system ESP.' }
     $mounted=$true; $esp=$letter+':\'
-    $actual=Get-Partition -DriveLetter $letter
-    if (([guid]$actual.Guid).ToString() -ne $plan.EspGuid -or $actual.DiskNumber -ne $plan.DiskNumber) { throw 'Mounted ESP identity does not match the system disk.' }
+    $volumePath=[W2D.Firmware]::VolumeName($esp)
+    $espVolume=Get-W2dEspVolume -VolumePath $volumePath -DiskNumber $plan.DiskNumber -EspGuid $plan.EspGuid
     if ((Test-Path (Join-Path $esp 'EFI/w2d')) -or (Test-Path (Join-Path $esp 'debian-installer'))) { throw 'Existing trial/netboot files detected. Refusing to overwrite them.' }
     $required=(Get-Item (Join-Path $work 'initrd-test.gz')).Length+2MB
     foreach ($name in @('linux','shimx64.efi','grubx64.efi')) { $required+=(Get-Item (Join-Path $downloads $name)).Length }
-    if ((Get-Volume -DriveLetter $letter).SizeRemaining -lt $required) { throw 'Insufficient free space on the existing ESP. No partition resizing is attempted.' }
+    if ($espVolume.SizeRemaining -lt $required) { throw 'Insufficient free space on the existing ESP. No partition resizing is attempted.' }
     $backup=Join-Path $work 'backup'; New-Item -ItemType Directory -Path $backup | Out-Null
     foreach ($name in @('PK','KEK','db','dbx')) { [IO.File]::WriteAllBytes((Join-Path $backup ($name+'.bin')),(Get-SecureBootUEFI -Name $name).Bytes) }
     & bcdedit.exe /export (Join-Path $backup 'BCD') | Out-Null

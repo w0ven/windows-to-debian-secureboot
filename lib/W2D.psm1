@@ -170,6 +170,15 @@ function Protect-W2dDirectory {
     }
     Set-Acl -LiteralPath $Directory -AclObject $acl
 }
+function Get-W2dEspVolume {
+    param([string]$VolumePath,[int]$DiskNumber,[string]$EspGuid)
+    if ($VolumePath -notmatch '^\\\\\?\\Volume\{[0-9a-f-]{36}\}\\$') { throw 'Invalid mounted volume path.' }
+    $partitions=@(Get-Partition -DiskNumber $DiskNumber | Where-Object { @($_.AccessPaths) -contains $VolumePath })
+    if ($partitions.Count -ne 1 -or ([guid]$partitions[0].Guid).ToString() -ne ([guid]$EspGuid).ToString() -or $partitions[0].GptType -ne '{c12a7328-f81f-11d2-ba4b-00a0c93ec93b}') { throw 'Mounted ESP identity does not match the system disk.' }
+    $volumes=@(Get-Volume -Path $VolumePath)
+    if ($volumes.Count -ne 1 -or $volumes[0].Path -ne $VolumePath) { throw 'Cannot uniquely identify the mounted ESP volume.' }
+    return $volumes[0]
+}
 function Get-W2dFreeLetter {
     foreach ($letter in @('S','T','U','V','W','X','Y','Z')) { if (!(Test-Path ($letter+':\')) -and !(Get-PSDrive -Name $letter -ErrorAction SilentlyContinue)) { return $letter } }
     throw 'No free temporary drive letter for the ESP.'

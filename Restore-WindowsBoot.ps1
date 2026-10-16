@@ -38,7 +38,7 @@ try {
     & mountvol.exe ($letter+':') /S
     if ($LASTEXITCODE -ne 0) { throw 'ESP mount failed.' }
     $mounted=$true; $esp=$letter+':\'
-    if (([guid](Get-Partition -DriveLetter $letter).Guid).ToString() -ne $state.EspGuid) { throw 'Mounted ESP mismatch.' }
+    Get-W2dEspVolume -VolumePath ([W2D.Firmware]::VolumeName($esp)) -DiskNumber $state.DiskNumber -EspGuid $state.EspGuid | Out-Null
     if ((Get-FileHash -LiteralPath (Join-Path $esp 'EFI/Microsoft/Boot/bootmgfw.efi') -Algorithm SHA256).Hash -ne $state.WindowsBootHash) { throw 'Windows boot manager changed; manual review required.' }
     $allowed=@('EFI/w2d/shimx64.efi','EFI/w2d/grubx64.efi','EFI/w2d/linux','EFI/w2d/initrd.gz','EFI/w2d/grub.cfg','debian-installer/amd64/grub/grub.cfg')
     foreach ($file in $state.Files) {

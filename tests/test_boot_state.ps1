@@ -28,7 +28,7 @@ function New-SafeBlock([string]$Text,[switch]$Advanced) {
     Assert (!$errors) "Extracted source parse failure: $errors"
     # Fail closed if future source changes introduce an unmocked side effect.
     $commands=@('Where-Object','Out-Null','Write-Host','Write-Warning','shutdown.exe',
-        'mountvol.exe','Get-Partition','Get-W2dFreeLetter','Get-FileHash','Join-Path',
+        'mountvol.exe','Get-Partition','Get-W2dEspVolume','Get-W2dFreeLetter','Get-FileHash','Join-Path',
         'Test-Path','Remove-Item','Get-ChildItem','ConvertTo-Json','Set-Content','Move-Item','Get-Date')
     foreach ($node in $ast.FindAll({param($n) $n -is [Management.Automation.Language.CommandAst]},$true)) {
         Assert ($commands -contains $node.GetCommandName()) "Unmocked command in source: $($node.Extent.Text)"
@@ -79,6 +79,7 @@ namespace W2D {
             drifts.Add(new Drift { Observed=observed, Number=number, Changed=changed, Value=value });
         }
         public static void EnablePrivilege() { Trace.Add("privilege:mock"); }
+        public static string VolumeName(string root) { Trace.Add("volume-name"); return "mock-volume"; }
         public static byte[] ReadGlobal(string key) {
             int number = Reads.ContainsKey(key) ? Reads[key]+1 : 1; Reads[key]=number;
             Trace.Add("read:"+key);
@@ -118,6 +119,11 @@ function Get-Partition {
     param($DiskNumber,$DriveLetter)
     [W2D.BootStateTestFirmware]::Trace.Add('partition')
     if (!$script:partitionMissing) { [pscustomobject]@{Guid=$script:state.EspGuid; DiskNumber=$script:state.DiskNumber} }
+}
+function Get-W2dEspVolume {
+    param($VolumePath,$DiskNumber,$EspGuid)
+    Assert ($VolumePath -eq 'mock-volume' -and $DiskNumber -eq $script:state.DiskNumber -and $EspGuid -eq $script:state.EspGuid) 'Unexpected mounted ESP identity'
+    [W2D.BootStateTestFirmware]::Trace.Add('esp-verify')
 }
 function Get-W2dFreeLetter { return 'S' }
 function Join-Path { param([string]$Path,[string]$ChildPath) return $Path.TrimEnd('/','\')+'/'+$ChildPath }

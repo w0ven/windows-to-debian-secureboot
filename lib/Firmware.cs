@@ -14,12 +14,19 @@ namespace W2D {
         [StructLayout(LayoutKind.Sequential)] struct TokenPrivileges { public uint Count; public Luid Luid; public uint Attributes; }
         [DllImport("kernel32.dll")] static extern IntPtr GetCurrentProcess();
         [DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr handle);
+        [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)] static extern bool GetVolumeNameForVolumeMountPoint(string path, StringBuilder name, uint length);
         [DllImport("advapi32.dll", SetLastError=true)] static extern bool OpenProcessToken(IntPtr process, uint access, out IntPtr token);
         [DllImport("advapi32.dll", CharSet=CharSet.Unicode, SetLastError=true)] static extern bool LookupPrivilegeValue(string system, string name, out Luid luid);
         [DllImport("advapi32.dll", SetLastError=true)] static extern bool AdjustTokenPrivileges(IntPtr token, bool disable, ref TokenPrivileges state, uint size, IntPtr previous, IntPtr needed);
         [DllImport("kernel32.dll", EntryPoint="GetFirmwareEnvironmentVariableExW", CharSet=CharSet.Unicode, SetLastError=true)] static extern uint GetVariable(string name, string guid, byte[] data, uint size, out uint attributes);
         [DllImport("kernel32.dll", EntryPoint="SetFirmwareEnvironmentVariableExW", CharSet=CharSet.Unicode, SetLastError=true)] static extern bool SetVariable(string name, string guid, byte[] data, uint size, uint attributes);
 
+        public static string VolumeName(string root) {
+            if (root==null || root.Length!=3 || root[0]<'A' || root[0]>'Z' || root[1]!=':' || root[2]!='\\') throw new ArgumentException("Expected an uppercase drive root");
+            StringBuilder name=new StringBuilder(1024);
+            if (!GetVolumeNameForVolumeMountPoint(root, name, (uint)name.Capacity)) throw new Win32Exception();
+            return name.ToString();
+        }
         public static void EnablePrivilege() {
             IntPtr token;
             if (!OpenProcessToken(GetCurrentProcess(), 0x28, out token)) throw new Win32Exception();

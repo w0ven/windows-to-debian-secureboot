@@ -12,6 +12,7 @@ PowerShell：
 
 ```powershell
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests\test_windows.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests\test_esp.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests\test_quick.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests\test_crypto.ps1
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests\test_boot_state.ps1
@@ -31,6 +32,7 @@ python3 -I -m unittest discover -s tests -p 'test_*.py' -v
 
 - 快捷入口的单次确认、随机密码与散列一致、取消/EOF/非交互拒绝、WhatIf/NoReboot 和旧模式兼容；测试只替换控制台状态与读写提示，不执行固件或分区操作；
 - IPv4 地址/掩码/网关验证，拒绝 off-link、stub DNS 和不支持的网络；
+- 临时 EFI 挂载无 Storage 盘符时，按原生卷路径核验磁盘/GPT 身份及容量；拒绝错误磁盘、错误分区和非唯一映射；
 - EFI LoadOption 的 GPT GUID、扇区几何和设备路径编码；
 - EFI signature list 的边界检查和原证书条目保留逻辑；
 - 真实脚本片段在内存固件替身下的 BootNext 漂移、编号复用和取消重启回归；
