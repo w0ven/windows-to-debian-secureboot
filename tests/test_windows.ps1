@@ -10,6 +10,24 @@ foreach ($file in Get-ChildItem $root -Recurse -Include *.ps1,*.psm1) {
     [Management.Automation.Language.Parser]::ParseFile($file.FullName,[ref]$tokens,[ref]$errors) | Out-Null
     Assert (!$errors) "PowerShell parse failure: $($file.FullName): $errors"
 }
+$tokens=$null; $errors=$null
+$moduleAst=[Management.Automation.Language.Parser]::ParseFile((Join-Path $root 'lib/W2D.psm1'),[ref]$tokens,[ref]$errors)
+$encryptionTry=$moduleAst.Find({param($n) $n -is [Management.Automation.Language.TryStatementAst] -and $n.Body.Extent.Text.Contains('MicrosoftVolumeEncryption')},$true)
+Assert ($null -ne $encryptionTry) 'Encryption detection source missing'
+$body=$encryptionTry.CatchClauses[0].Body.Extent.Text
+$catchBody=[scriptblock]::Create($body.Substring(1,$body.Length-2))
+function Invoke-CimFailure([string]$Code) {
+    try { throw 'synthetic CIM failure' }
+    catch {
+        $_.Exception | Add-Member -NotePropertyName NativeErrorCode -NotePropertyValue $Code
+        $_.Exception | Add-Member -NotePropertyName StatusCode -NotePropertyValue 3
+        & $catchBody
+    }
+}
+Invoke-CimFailure 'InvalidNamespace'
+Invoke-CimFailure 'InvalidClass'
+Reject { Invoke-CimFailure 'AccessDenied' } 'CIM access denied must not be treated as absent BitLocker'
+Reject { Invoke-CimFailure 'Failed' } 'Unknown CIM failure must stop encryption checks'
 Assert ((ConvertTo-W2dNetmask 24) -eq '255.255.255.0') 'IPv4 /24 mask'
 Assert ((ConvertTo-W2dNetmask 30) -eq '255.255.255.252') 'IPv4 /30 mask'
 Assert ((ConvertTo-W2dIPv4 '192.0.2.100') -eq 3221226084L) 'IPv4 integer'

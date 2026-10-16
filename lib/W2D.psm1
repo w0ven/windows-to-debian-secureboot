@@ -81,7 +81,7 @@ function Get-W2dPlan {
             if ($status.ReturnValue -ne 0 -or $status.ConversionStatus -ne 0) { throw 'BitLocker/device encryption is present or unknown. Decrypt and independently back up the disk before using this tool.' }
         }
     } catch [Microsoft.Management.Infrastructure.CimException] {
-        if ($_.Exception.StatusCode.ToString() -notin @('InvalidNamespace','InvalidClass')) { throw }
+        if ($_.Exception.NativeErrorCode.ToString() -notin @('InvalidNamespace','InvalidClass')) { throw }
     }
     $routes = @(Get-NetRoute -AddressFamily IPv4 -DestinationPrefix '0.0.0.0/0' | Where-Object { $_.NextHop -ne '0.0.0.0' -and (!$InterfaceIndex -or $_.InterfaceIndex -eq $InterfaceIndex) })
     if ($routes.Count -ne 1) { throw 'A unique IPv4 default route is required. Use -InterfaceIndex to select a NIC; multiple gateways are unsupported.' }
