@@ -56,7 +56,7 @@ Assert ([BitConverter]::ToUInt16($option,4) -eq ($option.Length-$start)) 'EFI de
 Reject { [W2D.Firmware]::BootOption($guid,1,2048,0,'\EFI\w2d\shimx64.efi') } 'Empty ESP must fail'
 Reject { [W2D.Firmware]::SignatureEntries([byte[]]@(1,2,3),$false) } 'Truncated EFI signature list must fail'
 $ms=New-Object IO.MemoryStream; $bw=New-Object IO.BinaryWriter($ms)
-$bw.Write(([guid]'a159c0a5-e494-4aa7-87b5-ab155c2bf072').ToByteArray());$bw.Write([uint32]47);$bw.Write([uint32]0);$bw.Write([uint32]19);$bw.Write($guid.ToByteArray());$bw.Write([byte[]]@(1,2,3));$bw.Flush()
+$bw.Write([byte[]]@(0xa1,0x59,0xc0,0xa5,0xe4,0x94,0xa7,0x4a,0x87,0xb5,0xab,0x15,0x5c,0x2b,0xf0,0x72));$bw.Write([uint32]47);$bw.Write([uint32]0);$bw.Write([uint32]19);$bw.Write($guid.ToByteArray());$bw.Write([byte[]]@(1,2,3));$bw.Flush()
 $esl=$ms.ToArray();$bw.Dispose();$ms.Dispose()
 $certs=[W2D.Firmware]::SignatureEntries($esl,$true)
 Assert ($certs.Length -eq 1 -and $certs[0] -eq [W2D.Firmware]::Sha256([byte[]]@(1,2,3))) 'EFI certificate extraction'

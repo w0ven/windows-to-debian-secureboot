@@ -69,7 +69,7 @@ namespace W2D {
         }
         public static string[] SignatureEntries(byte[] data, bool certificatesOnly) {
             List<string> entries = new List<string>(); int offset=0;
-            Guid x509 = new Guid("a159c0a5-e494-4aa7-87b5-ab155c2bf072");
+            Guid x509 = new Guid("a5c059a1-94e4-4aa7-87b5-ab155c2bf072");
             while (offset < data.Length) {
                 if (data.Length-offset < 28) throw new InvalidDataException("Truncated EFI signature list");
                 byte[] id=new byte[16]; Buffer.BlockCopy(data, offset, id, 0, 16);
