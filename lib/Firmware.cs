@@ -40,6 +40,7 @@ namespace W2D {
             } finally { CloseHandle(token); }
         }
         public static byte[] Read(string name, string guid) {
+            EnablePrivilege();
             byte[] data = new byte[1024 * 1024]; uint attributes;
             uint size = GetVariable(name, guid, data, (uint)data.Length, out attributes);
             if (size == 0) {
@@ -51,12 +52,15 @@ namespace W2D {
         }
         public static byte[] ReadGlobal(string name) { return Read(name, Global); }
         public static void WriteGlobal(string name, byte[] data) {
+            EnablePrivilege();
             if (!SetVariable(name, Global, data, (uint)data.Length, 7)) throw new Win32Exception();
         }
         public static void DeleteGlobal(string name) {
+            EnablePrivilege();
             if (!SetVariable(name, Global, new byte[0], 0, 0)) throw new Win32Exception();
         }
         public static void AppendAuthenticatedDb(byte[] payload) {
+            EnablePrivilege();
             // NV | BS | RT | TIME_BASED_AUTHENTICATED_WRITE_ACCESS | APPEND_WRITE.
             if (!SetVariable("db", Security, payload, (uint)payload.Length, 0x67)) throw new Win32Exception();
         }
